@@ -9,7 +9,7 @@
   "main": "main.js",
   "scripts": {
     "ng": "ng",
-    "start": "http-server -p 9999 -c-1 dist/tetris",
+    "start": "http-server -p $PORT -c-1 dist/tetris",
     "-electron": "npm-run-all -p electron:serve start:tetris",
     "electron:serve-tsc": "tsc -p tsconfig.serve.json",
     "electron:serve": "wait-on tcp:4200 && npm run electron:serve-tsc && npx electron . --serve",
