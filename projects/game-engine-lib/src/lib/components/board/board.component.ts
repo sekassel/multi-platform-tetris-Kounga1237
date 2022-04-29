@@ -1,3 +1,6 @@
+import {createRxDatabase } from 'rxdb';
+import { getRxStoragePouch, addPouchPlugin } from 'rxdb/plugins/pouchdb';
+addPouchPlugin(require('pouchdb-adapter-idb'));
 import {
   Component,
   ViewChild,
@@ -44,6 +47,7 @@ export class BoardComponent implements OnInit {
   lines!: number;
   level!: number;
   moves: Map<number, any> = new Map();
+  db!: null; 
   playSoundFn!: Function;
 
   @HostListener('window:keydown', ['$event'])
@@ -83,11 +87,62 @@ export class BoardComponent implements OnInit {
     this.initSound();
     this.initNext();
     this.resetGame();
+    this.initDB();
     this.highScore = 0;
+    
   }
 
   initSound() {
     this.playSoundFn = Zoundfx.start(0.2);
+  }
+
+  async initDB() {
+    try {
+      this.db = await createRxDatabase({
+      name: 'heroesdb',
+      storage: getRxStoragePouch('idb')
+      });
+
+      const mySchema = {
+        title: 'human schema',
+        version: 0,
+        primaryKey: 'scoreId',
+        type: 'object',
+        properties: {
+            scoreId: {
+                type: 'string',
+                maxLength: 100 // <- the primary key must have set maxLength
+            },
+            score: {
+                type: 'number',
+            },
+        },
+        required: ['scoreId','score'],
+    };
+    //@ts-ignore
+    const mycollections = await this.db.addCollections({
+        scores: {
+            //@ts-ignore
+          schema: mySchema
+        }
+      });
+     
+    //@ts-ignore
+    const foundDocuments = await this.db.scores.find({
+        selector: {
+            score: {
+                $gt: 0
+            }
+        }
+        //@ts-ignore
+        }).$.subscribe(scores => {
+          if(scores.length > 0) {
+            this.highScore = scores[0].score;
+          }
+      });
+    } catch(err) {
+      console.error(err);
+    }
   }
 
   initBoard() {
@@ -293,7 +348,7 @@ export class BoardComponent implements OnInit {
     }
   }
 
-  gameOver() {
+  async gameOver() {
     this.gameStarted = false;
     cancelAnimationFrame(this.requestId);
     this.highScore = this.points > this.highScore ? this.points : this.highScore;
@@ -303,6 +358,11 @@ export class BoardComponent implements OnInit {
     this.ctx.font = '1px Arial';
     this.ctx.fillStyle = 'red';
     this.ctx.fillText('GAME OVER', 1.8, 4);
+    //@ts-ignore
+    await this.db.scores.insert({
+      scoreId: (new Date).toISOString(),
+      score:this.highScore
+    });
   }
 
   getEmptyBoard(): number[][] {

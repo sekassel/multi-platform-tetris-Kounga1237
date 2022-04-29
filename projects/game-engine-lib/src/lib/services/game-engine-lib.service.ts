@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { IPiece } from '../components/piece/piece';
 import { COLS, ROWS, POINTS } from '../constants';
 
+
 @Injectable({
   providedIn: 'root'
 })
@@ -62,4 +63,6 @@ export class GameEngineLibService {
 
     return (level + 1) * lineClearPoints;
   }
+
+  
 }
